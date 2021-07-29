@@ -206,7 +206,7 @@ void STDCALL jaspRCPP_junctionHelper(bool collectNotRestore, const char * folder
 	
 	rinside->parseEvalQNT("source('symlinkTools.R')");
 	
-	rInside["symFolder"] = Rf_ScalarString(Rf_mkCharCE(folder, CE_UTF8));
+	rInside["symFolder"] = CSTRING_TO_R_UTF8(folder);
 	
 	if(collectNotRestore)	rinside->parseEvalQNT("collectAndStoreJunctions(symFolder)");
 	else					rinside->parseEvalQNT("restoreModulesIfNeeded(  symFolder)");
@@ -373,7 +373,7 @@ const char* STDCALL jaspRCPP_editImage(const char * name, const char * optionsJs
 	RInside &rInside = rinside->instance();
 
 	rInside[".imageBackground"] = imageBackground;
-	rInside[".editImgOptions"]	= CSTRING_TO_R(optionsJson);
+	rInside[".editImgOptions"]	= CSTRING_TO_R_UTF8(optionsJson);
 	rInside[".analysisName"]	= CSTRING_TO_R(name);
 	rInside[".ppi"]				= ppi;
 
@@ -459,7 +459,7 @@ const char*	STDCALL jaspRCPP_evalRCodeCommander(const char *rCode)
 	_logWriteFunction			= __cmderLogWrite;
 
 	lastErrorMessage = "";
-	rinside->instance()[".rCode"] = CSTRING_TO_R(rCode);
+	rinside->instance()[".rCode"] = CSTRING_TO_R_UTF8(rCode);
 	const std::string rCodeTryCatch(""
 		"withCallingHandlers("															"\n"
 		"  { "																			"\n"
@@ -913,23 +913,25 @@ void freeRBridgeColumnType(RBridgeColumnType *columns, size_t colMax)
 
 Rcpp::DataFrame jaspRCPP_readFullDataSet()
 {
-	size_t colMax = 0;
-	RBridgeColumn* colResults = readFullDataSetCB(&colMax);
+	size_t			colMax		= 0;
+	RBridgeColumn * colResults	= readFullDataSetCB(&colMax);
+	
 	return jaspRCPP_convertRBridgeColumns_to_DataFrame(colResults, colMax);
 }
 
 
 Rcpp::DataFrame jaspRCPP_readFullFilteredDataSet()
 {
-	size_t colMax = 0;
-	RBridgeColumn* colResults = readFullFilteredDataSetCB(&colMax);
+	size_t			colMax		= 0;
+	RBridgeColumn * colResults	= readFullFilteredDataSetCB(&colMax);
+	
 	return jaspRCPP_convertRBridgeColumns_to_DataFrame(colResults, colMax);
 }
 
 Rcpp::DataFrame jaspRCPP_readFilterDataSet()
 {
-	size_t colMax = 0;
-	RBridgeColumn* colResults = readFilterDataSetCB(&colMax);
+	size_t			colMax		= 0;
+	RBridgeColumn * colResults	= readFilterDataSetCB(&colMax);
 
 	if(colMax == 0)
 		return Rcpp::DataFrame();
@@ -939,9 +941,10 @@ Rcpp::DataFrame jaspRCPP_readFilterDataSet()
 
 Rcpp::DataFrame jaspRCPP_readDataSetSEXP(SEXP columns, SEXP columnsAsNumeric, SEXP columnsAsOrdinal, SEXP columnsAsNominal, SEXP allColumns)
 {
-	size_t colMax = 0;
-	RBridgeColumnType* columnsRequested = jaspRCPP_marshallSEXPs(columns, columnsAsNumeric, columnsAsOrdinal, columnsAsNominal, allColumns, &colMax);
-	RBridgeColumn* colResults = readDataSetCB(columnsRequested, colMax, true);
+	size_t				colMax				= 0;
+	RBridgeColumnType * columnsRequested	= jaspRCPP_marshallSEXPs(columns, columnsAsNumeric, columnsAsOrdinal, columnsAsNominal, allColumns, &colMax);
+	RBridgeColumn	  * colResults			= readDataSetCB(columnsRequested, colMax, true);
+	
 	freeRBridgeColumnType(columnsRequested, colMax);
 
 	return jaspRCPP_convertRBridgeColumns_to_DataFrame(colResults, colMax);
@@ -956,7 +959,7 @@ Rcpp::DataFrame jaspRCPP_convertRBridgeColumns_to_DataFrame(const RBridgeColumn*
 		Rcpp::List			list(colMax);
 		Rcpp::StringVector	columnNames(colMax);
 
-		for (int i = 0; i < colMax; i++)
+		for (int i = 0; i < int(colMax); i++)
 		{
 			const RBridgeColumn &	colResult	= colResults[i];
 
@@ -1025,9 +1028,7 @@ Rcpp::IntegerVector jaspRCPP_makeFactor(Rcpp::IntegerVector v, char** levels, in
 
 	Rcpp::CharacterVector labels(nbLevels);
 	for (int i = 0; i < nbLevels; i++)
-		labels[i] = CSTRING_TO_R_CHARSXP(levels[i]);
-
-
+		labels[i] = CSTRING_TO_R_CHARSXP_UTF8(levels[i]);
 
 	v.attr("levels") = labels;
 
